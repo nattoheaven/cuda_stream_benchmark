@@ -57,7 +57,7 @@
  */
 
 #ifndef N
-#   define N	2000000
+#   define N	500000
 #endif
 #ifndef NTIMES
 #   define NTIMES	10
@@ -104,7 +104,7 @@
     }                                                                   \
   } while (false)
 
-static __device__ float	a[N+OFFSET],
+static __device__ float4	a[N+OFFSET],
 				b[N+OFFSET],
 				c[N+OFFSET];
 static __device__ double	d_sum[3];
@@ -116,10 +116,10 @@ static char	*label[4] = {"Copy:      ", "Scale:     ",
     "Add:       ", "Triad:     "};
 
 static double	bytes[4] = {
-    2 * sizeof(float) * N,
-    2 * sizeof(float) * N,
-    3 * sizeof(float) * N,
-    3 * sizeof(float) * N
+    2 * sizeof(float4) * N,
+    2 * sizeof(float4) * N,
+    3 * sizeof(float4) * N,
+    3 * sizeof(float4) * N
     };
 
 extern double mysecond();
@@ -130,9 +130,9 @@ static __global__ void STREAM_Init()
   int j = ((blockIdx.z * gridDim.y + blockIdx.y) * gridDim.x + blockIdx.x) *
     blockDim.x + threadIdx.x;
   if (j < N) {
-    a[j] = 1.0f;
-    b[j] = 2.0f;
-    c[j] = 0.0f;
+    a[j] = make_float4(1.0f, 1.0f, 1.0f, 1.0f);
+    b[j] = make_float4(2.0f, 2.0f, 2.0f, 2.0f);
+    c[j] = make_float4(0.0f, 0.0f, 0.0f, 0.0f);
   }
 }
 
@@ -141,7 +141,7 @@ static __global__ void STREAM_Test()
   int j = ((blockIdx.z * gridDim.y + blockIdx.y) * gridDim.x + blockIdx.x) *
     blockDim.x + threadIdx.x;
   if (j < N) {
-    a[j] = 2.0E0f * a[j];
+    a[j] = make_float4(2.0E0f * a[j].x, 2.0E0f * a[j].y, 2.0E0f * a[j].z, 2.0E0f * a[j].y);
   }
 }
 
@@ -159,7 +159,7 @@ static __global__ void STREAM_Scale(float scalar)
   int j = ((blockIdx.z * gridDim.y + blockIdx.y) * gridDim.x + blockIdx.x) *
     blockDim.x + threadIdx.x;
   if (j < N) {
-    b[j] = scalar * c[j];
+    b[j] = make_float4(scalar * c[j].x, scalar * c[j].y, scalar * c[j].z, scalar * c[j].w);
   }
 }
 
@@ -168,7 +168,7 @@ static __global__ void STREAM_Add()
   int j = ((blockIdx.z * gridDim.y + blockIdx.y) * gridDim.x + blockIdx.x) *
     blockDim.x + threadIdx.x;
   if (j < N) {
-    c[j] = a[j] + b[j];
+    c[j] = make_float4(a[j].x + b[j].x, a[j].y + b[j].y, a[j].z + b[j].z, a[j].w + b[j].w);
   }
 }
 
@@ -177,16 +177,16 @@ static __global__ void STREAM_Triad(float scalar)
   int j = ((blockIdx.z * gridDim.y + blockIdx.y) * gridDim.x + blockIdx.x) *
     blockDim.x + threadIdx.x;
   if (j < N) {
-    a[j] = b[j] + scalar * c[j];
+    a[j] = make_float4(b[j].x + scalar * c[j].x, b[j].y + scalar * c[j].y, b[j].z + scalar * c[j].z, b[j].w + scalar * c[j].w);
   }
 }
 
-static __device__ void STREAM_Sum_sub(double *sum, const float *a,
+static __device__ void STREAM_Sum_sub(double *sum, const float4 *a,
 				      int j, double *shared)
 {
   double x;
   if (j < N) {
-    x = a[j];
+    x = a[j].x;
   } else {
     x = 0.0;
   }
@@ -240,7 +240,7 @@ main()
     printf(HLINE);
     printf("CUDA_STREAM based on STREAM version $Revision: 5.9 $\n");
     printf(HLINE);
-    BytesPerWord = sizeof(float);
+    BytesPerWord = sizeof(float4);
     printf("This system uses %d bytes per SINGLE PRECISION word.\n",
 	BytesPerWord);
 
