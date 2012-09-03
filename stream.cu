@@ -104,7 +104,7 @@
     }                                                                   \
   } while (false)
 
-static __device__ double	a[N+OFFSET],
+static __device__ float	a[N+OFFSET],
 				b[N+OFFSET],
 				c[N+OFFSET];
 static __device__ double	d_sum[3];
@@ -116,10 +116,10 @@ static char	*label[4] = {"Copy:      ", "Scale:     ",
     "Add:       ", "Triad:     "};
 
 static double	bytes[4] = {
-    2 * sizeof(double) * N,
-    2 * sizeof(double) * N,
-    3 * sizeof(double) * N,
-    3 * sizeof(double) * N
+    2 * sizeof(float) * N,
+    2 * sizeof(float) * N,
+    3 * sizeof(float) * N,
+    3 * sizeof(float) * N
     };
 
 extern double mysecond();
@@ -130,9 +130,9 @@ static __global__ void STREAM_Init()
   int j = ((blockIdx.z * gridDim.y + blockIdx.y) * gridDim.x + blockIdx.x) *
     blockDim.x + threadIdx.x;
   if (j < N) {
-    a[j] = 1.0;
-    b[j] = 2.0;
-    c[j] = 0.0;
+    a[j] = 1.0f;
+    b[j] = 2.0f;
+    c[j] = 0.0f;
   }
 }
 
@@ -141,7 +141,7 @@ static __global__ void STREAM_Test()
   int j = ((blockIdx.z * gridDim.y + blockIdx.y) * gridDim.x + blockIdx.x) *
     blockDim.x + threadIdx.x;
   if (j < N) {
-    a[j] = 2.0E0 * a[j];
+    a[j] = 2.0E0f * a[j];
   }
 }
 
@@ -154,7 +154,7 @@ static __global__ void STREAM_Copy()
   }
 }
 
-static __global__ void STREAM_Scale(double scalar)
+static __global__ void STREAM_Scale(float scalar)
 {
   int j = ((blockIdx.z * gridDim.y + blockIdx.y) * gridDim.x + blockIdx.x) *
     blockDim.x + threadIdx.x;
@@ -172,7 +172,7 @@ static __global__ void STREAM_Add()
   }
 }
 
-static __global__ void STREAM_Triad(double scalar)
+static __global__ void STREAM_Triad(float scalar)
 {
   int j = ((blockIdx.z * gridDim.y + blockIdx.y) * gridDim.x + blockIdx.x) *
     blockDim.x + threadIdx.x;
@@ -181,7 +181,7 @@ static __global__ void STREAM_Triad(double scalar)
   }
 }
 
-static __device__ void STREAM_Sum_sub(double *sum, const double *a,
+static __device__ void STREAM_Sum_sub(double *sum, const float *a,
 				      int j, double *shared)
 {
   double x;
@@ -232,15 +232,16 @@ main()
     int			quantum, checktick();
     int			BytesPerWord;
     register int	j, k;
-    double		scalar, t, times[4][NTIMES];
+    float		scalar;
+    double		t, times[4][NTIMES];
 
     /* --- SETUP --- determine precision and check timing --- */
 
     printf(HLINE);
     printf("CUDA_STREAM based on STREAM version $Revision: 5.9 $\n");
     printf(HLINE);
-    BytesPerWord = sizeof(double);
-    printf("This system uses %d bytes per DOUBLE PRECISION word.\n",
+    BytesPerWord = sizeof(float);
+    printf("This system uses %d bytes per SINGLE PRECISION word.\n",
 	BytesPerWord);
 
     printf(HLINE);
@@ -313,7 +314,7 @@ main()
     
     /*	--- MAIN LOOP --- repeat test cases NTIMES times --- */
 
-    scalar = 3.0;
+    scalar = 3.0f;
     for (k=0; k<NTIMES; k++)
 	{
 	times[0][k] = mysecond();
@@ -419,7 +420,8 @@ double mysecond()
 
 void checkSTREAMresults ()
 {
-	double aj,bj,cj,scalar;
+	double aj,bj,cj;
+	float scalar;
 	double h_sum[3];
 	double epsilon;
 	int	k;
@@ -431,7 +433,7 @@ void checkSTREAMresults ()
     /* a[] is modified during timing check */
 	aj = 2.0E0 * aj;
     /* now execute timing loop */
-	scalar = 3.0;
+	scalar = 3.0f;
 	for (k=0; k<NTIMES; k++)
         {
             cj = aj;
